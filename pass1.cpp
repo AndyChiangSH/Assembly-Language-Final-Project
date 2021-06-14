@@ -94,11 +94,14 @@ int main() {
 		}
 	}
 	optabTop++;
+	
+	char OPTAB_OP[optabTop][WORD_SIZE];
+	int OPTAB_CODE[optabTop];
 	rewind(fop);
-	char OPTAB[optabTop][2][WORD_SIZE];
 	for(i = 0; i < optabTop; i++) {
-		char op[WORD_SIZE], code[WORD_SIZE];
-    	fscanf(fop, "%s%s", OPTAB[i][0], OPTAB[i][1]);
+		char codeTemp[WORD_SIZE];
+    	fscanf(fop, "%s%s", OPTAB_OP[i], codeTemp);
+    	OPTAB_CODE[i] = hexToDec(codeTemp);
 	}
 	
 	// read next line
@@ -162,7 +165,7 @@ int main() {
 		bool isFoundOP = false;
 		for(i = 0; i < optabTop; i++) {
 			// search opcode in optable
-			if(strcmp(OPCODE, OPTAB[i][0]) == 0) {
+			if(strcmp(OPCODE, OPTAB_OP[i]) == 0) {
 				isFoundOP = true;
 				break;
 			}
