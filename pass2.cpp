@@ -10,12 +10,15 @@
 #define NEWSRC_FILE "new_source.txt"
 #define OBJ_FILE "object.txt"
 #define WORD_SIZE 10
-#define SYM_SIZE 100
+#define TEXT_RECD 10
 
 int hexToDec(char* hex);	// convert from hexadecimal string to decimail int
 int objectCode(int opcode, int x, int addr);	// create object code
 
 int main() {
+	
+	int objLength = 0x107A;	// length from pass1
+	
 	FILE * finter;
 	FILE * fop;
 	FILE * fsym;
@@ -73,15 +76,17 @@ int main() {
     
     // read first line
     fscanf(finter, "%X%s%s%s", &LOCCTR, LABEL, OPCODE, OPERAND);
+    startAddr = LOCCTR;
     
     // start pass2
     printf("-----pass 2 START-----\n\n");
-    printf("-----new source file START-----\n");
     if(strcmp(OPCODE, "START") == 0) {
     	startAddr = hexToDec(OPERAND);
     	LOCCTR = startAddr;
-    	printf("%X\t%s\t%s\t%s\n", LOCCTR, LABEL, OPCODE, OPERAND);
+//    	printf("%X\t%s\t%s\t%s\n", LOCCTR, LABEL, OPCODE, OPERAND);
     	fprintf(fnew, "%X\t%s\t%s\t%s\n", LOCCTR, LABEL, OPCODE, OPERAND);
+//    	printf("H%-6s%06s%06X\n", LABEL, OPERAND, objLength);
+		fprintf(fobj, "H%-6s%06s%06X\n", LABEL, OPERAND, objLength);	
 	}
 	else {
 		return 0;
@@ -125,6 +130,9 @@ int main() {
 	}
 	
 	// read next line
+	int objNum = 0, objLen = 0, recordStart = 0;
+	char textRecord[TEXT_RECD*12];
+	strcpy(textRecord, "");
 	getc(finter);
 	while(true) {
 		// read location counter, label, opcode and operand in one line
@@ -169,8 +177,16 @@ int main() {
 			continue;
 		}
 		
+		// end of intermediate file
 		if(strcmp(OPCODE, "END") == 0) {
-			printf("\t%s\t%s\t%s\n", LABEL, OPCODE, ALL_OPERAND);
+//			printf("\t%s\t%s\t%s\n", LABEL, OPCODE, ALL_OPERAND);
+			fprintf(fnew, "\t%s\t%s\t%s\n", LABEL, OPCODE, ALL_OPERAND);
+//			printf("%02X", objLen);
+//			printf("%s\n", textRecord);
+//			printf("E%06X\n", startAddr);
+			fprintf(fobj, "%02X", objLen);
+			fprintf(fobj, "%s\n", textRecord);
+			fprintf(fobj, "E%06X\n", startAddr);
 			break;
 		}
 		
@@ -194,7 +210,6 @@ int main() {
 					}
 				}
 				if(isFoundSYM) {	// find symbol in symbol table
-//					printf("find defined symbol \'%s\'\n", OPERAND);
 					operAddr = SYMTAB_ADDR[j];
 				}
 				else {	// not find
@@ -203,49 +218,99 @@ int main() {
 					return 0;
 				}
 			}
-			else {
+			else {	// no operand
 				operAddr = 0;
 			}
 			objCode = objectCode(OPTAB_CODE[i], X, operAddr);
+			// concatenate opcode behind text record
+			objLen += 3;
+			char temp[6];
+			sprintf(temp, "%06X", objCode);
+			strncat(textRecord, temp, 6);
 		}
-		else if(strcmp(OPCODE, "BYTE") == 0) {
-			// length of operand
-			char byteOPER[WORD_SIZE] = "";
-			for(i = 2; i < WORD_SIZE; i++) {
-				if(OPERAND[i] == '\'') {
-					break;
+		else if(strcmp(OPCODE, "BYTE") == 0) {	// BYTE
+			int operLen = 0, tempLen = 0;
+			if(OPERAND[0] == 'C') {	// character
+				// get the value inside ''
+				for(i = 2; i < WORD_SIZE; i++) {
+					if(OPERAND[i] == '\'') {
+						break;
+					}
+					operLen++;
+					objCode = objCode*0x100 + OPERAND[i];
 				}
-				strncat(byteOPER, &OPERAND[i], 1);
+				objLen += operLen;	// one character is one byte
+				char temp[operLen*2];
+				sprintf(temp, "%06X", objCode);
+				strncat(textRecord, temp, operLen*2);	// concatenate opcode behind text record
 			}
-			if(OPERAND[0] == 'C') {
-				for(j = 0; byteOPER[j] != '\0'; j++) {
-					objCode = objCode*0x100 + byteOPER[j];
+			else if(OPERAND[0] == 'X') {	// hexadecimal
+				char hexOPER[WORD_SIZE] = "";
+				// get the value inside ''
+				for(i = 2; i < WORD_SIZE; i++) {
+					if(OPERAND[i] == '\'') {
+						break;
+					}
+					operLen++;
+					strncat(hexOPER, &OPERAND[i], 1);
 				}
-			}
-			else if(OPERAND[0] == 'X') {
-				objCode = hexToDec(byteOPER);
+				objLen += (operLen+1)/2;	// two hexadecimal is one byte
+				objCode = hexToDec(hexOPER);
+				strncat(textRecord, hexOPER, operLen);	// concatenate opcode behind text record
 			}
 			else {
 				printf("Error: invalid byte type '%c'", OPERAND[0]);
 				return 0;
 			}
 		}
-		else if(strcmp(OPCODE, "WORD") == 0) {
+		else if(strcmp(OPCODE, "WORD") == 0) {	// WORD
 			objCode = objectCode(0, 0, atoi(OPERAND));
+			objLen += 3;
+			char temp[6];
+			sprintf(temp, "%06X", objCode);
+			strncat(textRecord, temp, 6);	// concatenate opcode behind text record
+		}
+		else if(strcmp(OPCODE, "RESW") == 0 || strcmp(OPCODE, "RESB") == 0) {
+			// nothing to do
+		}
+		else {
+			printf("Error: undefined opcode \'%s\'\n", OPCODE);
 		}
 		
-//		printf("Error: undefined opcode \'%s\'\n", OPCODE);
+		// count number of object code
+		if(objNum == 0) {
+			// write T and starting address
+//			printf("T%06X", LOCCTR);
+			fprintf(fobj, "T%06X", LOCCTR);
+		}
+		objNum++;
+		// max object number is 10 in this case
+		// if over 10, then change to next line
+		if(objNum == TEXT_RECD) {
+			// write length of object code and object code
+//			printf("%02X", objLen);
+//			printf("%s\n", textRecord);
+			fprintf(fobj, "%02X", objLen);
+			fprintf(fobj, "%s\n", textRecord);
+			objNum = 0;
+			objLen = 0;
+			strcpy(textRecord, "");
+		}
 		
-		printf("%X\t%s\t%s\t%-15s%06X\n", LOCCTR, LABEL, OPCODE, ALL_OPERAND, objCode);
+		// write new source file
+//		printf("%X\t%s\t%s\t%-15s%06X\n", LOCCTR, LABEL, OPCODE, ALL_OPERAND, objCode);
+		fprintf(fnew, "%X\t%s\t%s\t%-15s%06X\n", LOCCTR, LABEL, OPCODE, ALL_OPERAND, objCode);
 	}
-	printf("-----new source file END-----\n\n");	
+	printf("-----pass 2 END-----\n\n");
 	
-	printf("-----pass 2 END-----\n");
+	printf("%s complete!\n", NEWSRC_FILE);
+	printf("%s complete!\n", OBJ_FILE);
     
     fclose(finter);
     fclose(fop);
-    fclose(finter);
     fclose(fsym);
+    fclose(fnew);
+    fclose(fobj);
     return 0;
 }
 
@@ -276,13 +341,5 @@ int hexToDec(char hex[]) {
 }
 
 int objectCode(int opcode, int x, int addr) {
-//	printf("opcode = %X\n", opcode);
-//	printf("x = %X\n", x);
-//	printf("addr = %X\n", addr);
-	
-	int objcode = opcode*0x10000 + x*0x8000 + addr;
-	
-//	printf("objcode = %X\n", objcode);
-	
-	return objcode;
+	return opcode*0x10000 + x*0x8000 + addr;
 }

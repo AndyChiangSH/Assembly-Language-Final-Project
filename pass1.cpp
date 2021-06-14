@@ -215,7 +215,10 @@ int main() {
 		fprintf(fsym, "%s\t%04X\n", SYMTAB_LABEL[i], SYMTAB_ADDR[i]);
 	}
 	printf("-----symbol table END-----\n\n");
-	printf("-----pass 1 END-----\n");
+	printf("-----pass 1 END-----\n\n");
+	
+	printf("%s complete!\n", INTER_FILE);
+	printf("%s complete!\n", SYMTAB_FILE);
     
     fclose(fsrc);
     fclose(fop);

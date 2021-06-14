@@ -6,21 +6,18 @@
 int hexToDec(char* hex);
 
 int main() {
-	FILE * fin;
 	
-	fin = fopen("test.txt", "r");
-    if(fin == NULL) {
-        printf("fin not found...");
-        return 0;
-    }
-    else {
-        printf("find fin!\n");
-    }
-    
-    int h;
-    fscanf(fin, "%X", &h);
-    printf("%X %d", h, h);
+	char textRecord[10][6];
+	int i;
 	
+	for(i = 0; i < 10; i++) {
+		strcpy(textRecord[i], "");
+	}
+	
+	for(i = 0; i < 10; i++) {
+		printf("'%s'\n", textRecord[i]);
+	}
+		
 	return 0;
 }
 
