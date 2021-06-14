@@ -99,9 +99,7 @@ int main() {
 	int OPTAB_CODE[optabTop];
 	rewind(fop);
 	for(i = 0; i < optabTop; i++) {
-		char codeTemp[WORD_SIZE];
-    	fscanf(fop, "%s%s", OPTAB_OP[i], codeTemp);
-    	OPTAB_CODE[i] = hexToDec(codeTemp);
+    	fscanf(fop, "%s%X", OPTAB_OP[i], &OPTAB_CODE[i]);
 	}
 	
 	// read next line
@@ -135,6 +133,13 @@ int main() {
 			continue;
 		}
 		
+		// last line
+		if(strcmp(OPCODE, "END") == 0) {
+			printf("\t%s\t%s\t%s\n", LABEL, OPCODE, OPERAND);
+			fprintf(finter, "\t%s\t%s\t%s\n", LABEL, OPCODE, OPERAND);
+			break;
+		}
+		
 		// add label and address into symbol table
 		if(strcmp(LABEL, "") != 0) {
 			// check duplicate label
@@ -150,16 +155,9 @@ int main() {
 			symtabTop++;
 		}
 		
-		// last line
-		if(strcmp(OPCODE, "END") == 0) {
-			printf("\t%s\t%s\t%s\n", LABEL, OPCODE, OPERAND);
-			fprintf(finter, "\t%s\t%s\t%s\n", LABEL, OPCODE, OPERAND);
-			break;
-		}
-		
 		// write intermediate file
-		printf("%X\t%s\t%s\t%s\n", LOCCTR, LABEL, OPCODE, OPERAND);
-		fprintf(finter, "%X\t%s\t%s\t%s\n", LOCCTR, LABEL, OPCODE, OPERAND);
+		printf("%04X\t%s\t%s\t%s\n", LOCCTR, LABEL, OPCODE, OPERAND);
+		fprintf(finter, "%04X\t%s\t%s\t%s\n", LOCCTR, LABEL, OPCODE, OPERAND);
 		
 		// calculate next location counter
 		bool isFoundOP = false;
@@ -213,8 +211,8 @@ int main() {
 	printf("-----symbol table START-----\n");
 	printf("label\taddress\n");
 	for(i = 0; i < symtabTop; i++) {
-		printf("%s\t%X\n", SYMTAB_LABEL[i], SYMTAB_ADDR[i]);
-		fprintf(fsym, "%s\t%X\n", SYMTAB_LABEL[i], SYMTAB_ADDR[i]);
+		printf("%s\t%04X\n", SYMTAB_LABEL[i], SYMTAB_ADDR[i]);
+		fprintf(fsym, "%s\t%04X\n", SYMTAB_LABEL[i], SYMTAB_ADDR[i]);
 	}
 	printf("-----symbol table END-----\n\n");
 	printf("-----pass 1 END-----\n");

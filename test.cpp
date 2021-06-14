@@ -6,13 +6,20 @@
 int hexToDec(char* hex);
 
 int main() {
-	int hex;
-//	printf("Enter value of hex: ");
-//	scanf("%X", &hex);
+	FILE * fin;
 	
-	hex = 0xA * 0xA;
-	
-	printf("dec = %d, hex = %X", hex, hex);
+	fin = fopen("test.txt", "r");
+    if(fin == NULL) {
+        printf("fin not found...");
+        return 0;
+    }
+    else {
+        printf("find fin!\n");
+    }
+    
+    int h;
+    fscanf(fin, "%X", &h);
+    printf("%X %d", h, h);
 	
 	return 0;
 }
