@@ -41,6 +41,5 @@ WLOOP	TD	OUTPUT
 	TIX	LENGTH
 	JLT	WLOOP
 	RSUB
-# comment here brabrabrabra
 OUTPUT	BYTE	X'05'
 	END	FIRST
