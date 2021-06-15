@@ -1,7 +1,7 @@
 // **pass1&2 assembler**
 // Author: 4108056005 Andy Chiang
 // Time: 2021/06/15
-// Line: 556
+// Line: 555 
 // Description: This is a program for Assembly-Language and System-Software final project.
 // This program can complete pass1 and pass2, then convert source code (assembly language) into object code.
 // Input(pass1): source code, opcode table.
@@ -205,6 +205,10 @@ int pass1() {
 			break;
 		}
 		
+		// write intermediate file
+//		printf("%04X\t%s\t%s\t%s\n", LOCCTR, LABEL, OPCODE, OPERAND);
+		fprintf(finter, "%04X\t%s\t%s\t%s\n", LOCCTR, LABEL, OPCODE, OPERAND);
+		
 		// add label and address into symbol table
 		if(strcmp(LABEL, "") != 0) {
 			// check duplicate label
@@ -215,14 +219,9 @@ int pass1() {
 				}
 			}
 			strcpy(SYMTAB_LABEL[symtabTop], LABEL);
-			// itoa: C standard function to convert int to string
 			SYMTAB_ADDR[symtabTop] = LOCCTR;
 			symtabTop++;
 		}
-		
-		// write intermediate file
-//		printf("%04X\t%s\t%s\t%s\n", LOCCTR, LABEL, OPCODE, OPERAND);
-		fprintf(finter, "%04X\t%s\t%s\t%s\n", LOCCTR, LABEL, OPCODE, OPERAND);
 		
 		// calculate next location counter
 		bool isFoundOP = false;
@@ -346,7 +345,7 @@ int pass2() {
 	}
 	
 	// read next line
-	int objNum = 0, objLen = 0, recordStart = 0;
+	int objNum = 0, objLen = 0;
 	char textRecord[TEXT_RECD*12];
 	strcpy(textRecord, "");
 	line++;
@@ -471,8 +470,8 @@ int pass2() {
 					operLen++;
 					strncat(hexOPER, &OPERAND[i], 1);
 				}
-				objLen += (operLen+1)/2;	// two hexadecimal is one byte
 				objCode = hexToDec(hexOPER);
+				objLen += (operLen+1)/2;	// two hexadecimal is one byte
 				strncat(textRecord, hexOPER, operLen);	// concatenate opcode behind text record
 			}
 			else {
