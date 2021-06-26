@@ -7,18 +7,10 @@ int hexToDec(char* hex);
 
 int main() {
 	
-	char textRecord[10][6];
-	int i;
+	char str1[10] = "BUFFER";
+	char str2[10] = "BUFFER ";
 	
-	for(i = 0; i < 10; i++) {
-		strcpy(textRecord[i], "");
-	}
-	
-	for(i = 0; i < 10; i++) {
-		printf("'%s'\n", textRecord[i]);
-	}
-		
-	return 0;
+	printf("%d", strcmp(str1, str2));
 }
 
 int hexToDec(char hex[]) {
