@@ -8,16 +8,11 @@ int hexToDec(char* hex);
 
 int main() {
 	
-	char str[REGI_LEN] = "yabe";
+	short i = 1;
 	
-	int i, len = 0;
-	for(i = 0; i < REGI_LEN; i++) {
-		if(str[i] == '\0') {
-			break;
-		}
-		len++;
-	}
-	printf("len = %d\n", len);
+	printf("%d\n", i);
+	
+	return 0;
 }
 
 int hexToDec(char hex[]) {
@@ -38,7 +33,7 @@ int hexToDec(char hex[]) {
         }
         else {
         	printf("Error: Wrong hexadecimal format \'%c\'\n", hex[i]);
-        	return -1;
+        	exit(-1);
 		}
 		dec = dec*16 + val;
 	}
