@@ -2,15 +2,22 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#define REGI_LEN 9
 
 int hexToDec(char* hex);
 
 int main() {
 	
-	char str1[10] = "BUFFER";
-	char str2[10] = "BUFFER ";
+	char str[REGI_LEN] = "yabe";
 	
-	printf("%d", strcmp(str1, str2));
+	int i, len = 0;
+	for(i = 0; i < REGI_LEN; i++) {
+		if(str[i] == '\0') {
+			break;
+		}
+		len++;
+	}
+	printf("len = %d\n", len);
 }
 
 int hexToDec(char hex[]) {
