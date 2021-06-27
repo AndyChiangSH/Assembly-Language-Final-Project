@@ -8,9 +8,10 @@ int hexToDec(char* hex);
 
 int main() {
 	
-	short i = 1;
+	int a = 0x12345678;
 	
-	printf("%d\n", i);
+	printf("%X\n", a);
+	printf("%04X\n", a);
 	
 	return 0;
 }
