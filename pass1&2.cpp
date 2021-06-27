@@ -1,7 +1,7 @@
 // **pass1&2 assembler**
 // Author: 4108056005 Andy Chiang
-// Time: 2021/06/15
-// Line: 555 
+// Time: 2021/06/27
+// Line: 576
 // Description: This is a program for Assembly-Language and System-Software final project.
 // This program can complete pass1 and pass2, then convert source code (assembly language) into object code.
 // Input(pass1): source code, opcode table.
@@ -104,7 +104,7 @@ int main(void) {
         printf("Error: %s not found...\n", OBJ_FILE);
         exit(-1);
     }
-    
+	   
     if(pass2() != 0) {
 		printf("Error: error in pass2\n");
 		exit(-1);
@@ -171,25 +171,36 @@ int pass1() {
 	while(true) {
 		// read label, opcode and operand in one line
 		int state = 0;
+		bool isSpace = false;
 		strcpy(LABEL, "");
 		strcpy(OPCODE, "");
-		strcpy(OPERAND, ""); 
+		strcpy(OPERAND, "");
 		while(true) {
 			char c = getc(fsrc);
 			if(c == '\n' || c == EOF) {
 				break;
 			}
-			else if(c == '\t') {
-				state++;
+			if(isSpace) {	// span column by space or tab 
+				if(c != ' ' && c != '\t') {
+					isSpace = false;
+				}
 			}
-			else if(state == 0) {
-				strncat(LABEL, &c, 1);
+			else {
+				if(state != 2 && (c == ' ' || c == '\t')) {
+					isSpace = true;
+					state++;
+				}
 			}
-			else if(state == 1) {
-				strncat(OPCODE, &c, 1);
-			}
-			else if(state == 2) {
-				strncat(OPERAND, &c, 1);
+			if(!isSpace) {
+				if(state == 0) {
+					strncat(LABEL, &c, 1);
+				}
+				else if(state == 1) {
+					strncat(OPCODE, &c, 1);
+				}
+				else if(state == 2) {
+					strncat(OPERAND, &c, 1);
+				}	
 			}
 		}
 		// skip comment
@@ -352,14 +363,13 @@ int pass2() {
 	getc(finter);
 	while(true) {
 		// read location counter, label, opcode and operand in one line
-		int state = 0;
+		int state = 0, X = 0;
 		strcpy(LABEL, "");
 		strcpy(OPCODE, "");
 		strcpy(OPERAND, "");
 		strcpy(ALL_OPERAND, "");
 		LOCCTR = 0;
 		char tempLOC[WORD_SIZE] = "";
-		int X = 0;
 		while(true) {
 			char c = getc(finter);
 			if(c == '\n' || c == EOF) {
@@ -514,8 +524,19 @@ int pass2() {
 		}
 		
 		// write new source file
-//		printf("%X\t%s\t%s\t%-15s%06X\n", LOCCTR, LABEL, OPCODE, ALL_OPERAND, objCode);
-		fprintf(fnew, "%X\t%s\t%s\t%-15s%06X\n", LOCCTR, LABEL, OPCODE, ALL_OPERAND, objCode);
+		if(strcmp(OPCODE, "RESW") == 0 || strcmp(OPCODE, "RESB") == 0) {
+//			printf("%X\t%s\t%s\t%-15s\n", LOCCTR, LABEL, OPCODE, ALL_OPERAND);
+			fprintf(fnew, "%X\t%s\t%s\t%-15s\n", LOCCTR, LABEL, OPCODE, ALL_OPERAND);		
+		}
+		else if(strcmp(OPCODE, "BYTE") == 0) {
+//			printf("%X\t%s\t%s\t%-15s%02X\n", LOCCTR, LABEL, OPCODE, ALL_OPERAND, objCode);
+			fprintf(fnew, "%X\t%s\t%s\t%-15s%02X\n", LOCCTR, LABEL, OPCODE, ALL_OPERAND, objCode);				
+		}
+		else {
+//			printf("%X\t%s\t%s\t%-15s%06X\n", LOCCTR, LABEL, OPCODE, ALL_OPERAND, objCode);
+			fprintf(fnew, "%X\t%s\t%s\t%-15s%06X\n", LOCCTR, LABEL, OPCODE, ALL_OPERAND, objCode);	
+		}
+
 		line++;
 	}
 	printf("%s complete!\n", NEWSRC_FILE);

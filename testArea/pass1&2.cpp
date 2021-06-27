@@ -182,7 +182,7 @@ int pass1() {
 			if(c == '\n' || c == EOF) {
 				break;
 			}
-			if(isSpace) {
+			if(isSpace) {	// span column by space or tab 
 				if(c != ' ' && c != '\t') {
 					isSpace = false;
 				}
@@ -532,7 +532,7 @@ int pass2() {
 		}
 		else if(strcmp(OPCODE, "BYTE") == 0) {
 //			printf("%X\t%s\t%s\t%-15s%02X\n", LOCCTR, LABEL, OPCODE, ALL_OPERAND, objCode);
-			fprintf(fnew, "%X\t%s\t%s\t%-15s%X\n", LOCCTR, LABEL, OPCODE, ALL_OPERAND, objCode);				
+			fprintf(fnew, "%X\t%s\t%s\t%-15s%02X\n", LOCCTR, LABEL, OPCODE, ALL_OPERAND, objCode);				
 		}
 		else {
 //			printf("%X\t%s\t%s\t%-15s%06X\n", LOCCTR, LABEL, OPCODE, ALL_OPERAND, objCode);
