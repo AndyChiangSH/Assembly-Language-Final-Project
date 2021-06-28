@@ -1,7 +1,7 @@
 // **pass1&2 SIC/XE assembler**
 // Author: 4108056005 Andy Chiang
-// Time: 2021/06/27
-// Line: 576
+// Time: 2021/06/28
+// Line: 790
 // Description: This is a program for Assembly-Language and System-Software final project.
 // This program can complete pass1 and pass2, then convert source code (assembly language) into object code.
 // Input(pass1): source code, opcode table.
@@ -21,7 +21,8 @@
 #define WORD_SIZE 10
 #define LINE_SIZE 100
 #define SYM_SIZE 100
-#define TEXT_RECD 10
+#define TRECD_SIZE 10
+#define MRECD_SIZE 1000
 #define REGI_LEN 9
 
 FILE * fsrc;
@@ -44,6 +45,8 @@ unsigned int objectCodeFormat3(int, short, short, short, short, short, short, in
 unsigned int objectCodeFormat4(int, short, short, short, short, short, short, int);	// create object code for format4
 
 int main(void) {
+	
+	printf("=====SIC/XE assembler=====\n\n");
 	
 	printf("-----pass 1 START-----\n\n");
 	
@@ -110,12 +113,12 @@ int main(void) {
         printf("Error: %s not found...\n", OBJ_FILE);
         exit(-1);
     }
-	   
+    
     if(pass2() != 0) {
 		printf("Error: error in pass2\n");
 		exit(-1);
 	}
-    
+	
     // close file for pass2
     fclose(finter);
     fclose(fop);
@@ -177,7 +180,7 @@ int pass1() {
 	while(true) {
 		// read label, opcode and operand in one line
 		short state = 0, e = 0;
-		bool isSpace = false, hasSecond = false , hasByte = false;
+		bool isSpace = false;
 		strcpy(LABEL, "");
 		strcpy(OPCODE, "");
 		strcpy(FIRST_OPERAND, "");
@@ -215,11 +218,9 @@ int pass1() {
 				else if(state == 2) {
 					if(c == '\'') {
 						state++;
-						hasByte = true;
 					}
 					else if(c == ',') {
 						state++;
-						hasSecond = true;
 					}
 					else {
 						strncat(FIRST_OPERAND, &c, 1);
@@ -240,14 +241,14 @@ int pass1() {
 		// base opcode
 		if(strcmp(OPCODE, "BASE") == 0) {
 //			printf("\t%s\n", ONE_LINE);
-			fprintf(finter, "\t%s\n", ONE_LINE);
+			fprintf(finter, "%04X\t%s\n", LOCCTR, ONE_LINE);
 			continue;
 		}
 		
 		// last line
 		if(strcmp(OPCODE, "END") == 0) {
 //			printf("\t%s\n", ONE_LINE);
-			fprintf(finter, "\t%s\n", ONE_LINE);
+			fprintf(finter, "%04X\t%s\n", LOCCTR, ONE_LINE);
 			objLength = LOCCTR-startAddr;
 			break;
 		}
@@ -336,7 +337,6 @@ int pass1() {
 	printf("%s complete!\n", INTER_FILE);	
 	
 	// show symbol table & write symbol table file
-//	printf("label\taddress\n");
 	for(i = 0; i < symtabTop; i++) {
 //		printf("%s\t%04X\n", SYMTAB_LABEL[i], SYMTAB_ADDR[i]);
 		fprintf(fsym, "%s\t%04X\n", SYMTAB_LABEL[i], SYMTAB_ADDR[i]);
@@ -354,7 +354,6 @@ int pass2() {
 	
     char LABEL[WORD_SIZE], OPCODE[WORD_SIZE], FIRST_OPERAND[WORD_SIZE], SECOND_OPERAND[WORD_SIZE], ONE_OPERAND[WORD_SIZE*2], ONE_LINE[LINE_SIZE];
     int i, j, startAddr = 0, LOCCTR = 0, symtabTop = 0, optabTop = 0, BASE = 0, PC = 0;
-    bool hasSecond = false , hasByte = false;
     line = 1;
     
     // read first line
@@ -364,9 +363,9 @@ int pass2() {
     if(strcmp(OPCODE, "START") == 0) {
     	PC = startAddr;
 //    	printf("%04X\t%s\t%s\t%d\n", PC, LABEL, OPCODE, startAddr);
-    	fprintf(fnew, "%04X\t%s\t%s\t%d\n", PC, LABEL, OPCODE, startAddr);
+    	fprintf(fnew, "%04X\t%s\t%s\t%X\n", PC, LABEL, OPCODE, startAddr);
 //    	printf("H%-6s%06s%06X\n", LABEL, OPERAND, objLength);
-		fprintf(fobj, "H%-6s%06s%06X\n", LABEL, FIRST_OPERAND, objLength);	
+		fprintf(fobj, "H%-6s%06X%06X\n", LABEL, startAddr, objLength);	
 	}
 	else {
 		printf("Error: No START at first line, in line %d\n", line);
@@ -412,8 +411,10 @@ int pass2() {
 	
 	// read next line
 	int objNum = 0, objLen = 0;
-	char textRecord[TEXT_RECD*12];
+	char textRecord[TRECD_SIZE*15];
+	char modiRecord[MRECD_SIZE];
 	strcpy(textRecord, "");
+	strcpy(modiRecord, "");
 	line++;
 	while(true) {
 		char c = getc(finter);
@@ -462,11 +463,9 @@ int pass2() {
 				}
 				else if(c == '\'') {	// BYTE two operand
 					state++;
-					hasByte = true;
 				}
 				else if(c == ',') {		// two operand
 					state++;
-					hasSecond = true;
 				}
 				else {
 					strncat(FIRST_OPERAND, &c, 1);
@@ -497,7 +496,6 @@ int pass2() {
 		}
 		PC = hexToDec(nextPC);
 		
-		
 		// base opcode
 		if(strcmp(OPCODE, "BASE") == 0) {
 			bool isFoundBase = false;
@@ -526,9 +524,9 @@ int pass2() {
 //			printf("%s\t%s\n", ONE_LINE, ONE_OPERAND);
 			fprintf(fnew, "%s\t%s\n", ONE_LINE, ONE_OPERAND);
 //			printf("%02X%s\n", objLen, textRecord);
-//			printf("E%06X\n", startAddr);
-			fprintf(fobj, "%02X", objLen);
-			fprintf(fobj, "%s\n", textRecord);
+			fprintf(fobj, "%02X%s\n", objLen, textRecord);
+//			printf("%s\n", modiRecord);
+			fprintf(fobj, "%s", modiRecord);
 			fprintf(fobj, "E%06X\n", startAddr);
 			break;
 		}
@@ -555,6 +553,7 @@ int pass2() {
 					}
 				}
 				if(isFoundREGI) {
+					isFoundREGI = false;
 					if(strcmp(SECOND_OPERAND, "") != 0) {
 						isFoundREGI = false;
 						for(j = 0; j < REGI_LEN; j++) {
@@ -563,6 +562,10 @@ int pass2() {
 								regi2 = REGI_NUM[j];
 								break;
 							}
+						}
+						if(!isFoundREGI) {
+							printf("Error: unvaild second register name \'%s\', in line %d\n", SECOND_OPERAND, line);
+							return -1;
 						}
 					}
 					format = 2;
@@ -577,6 +580,9 @@ int pass2() {
 						}
 					}
 					if(isFoundSYM) {	// find symbol in symbol table
+						if(strcmp(SECOND_OPERAND, "X") == 0) {
+							X = 1;
+						}
 						operAddr = SYMTAB_ADDR[j];
 						disp = operAddr - PC;
 						if(disp >= -2048 && disp <= 2047) {	// PC-relative range
@@ -593,18 +599,28 @@ int pass2() {
 								if(E == 1) {	// direct address: format 4
 									disp = operAddr;
 									format = 4;
+									// append modification record
+									char temp[10];
+									sprintf(temp, "M%06X05\n", LOCCTR+1);
+									strncat(modiRecord, temp, 10);
 								}
 								else {
-									printf("Error: PC, Base relative out of range \'%s\', in line %d\n", FIRST_OPERAND, line);
-									return -1;
+									// for SIC
+									N = 0, I = 0;
+									format = 3;
 								}
 							}
 						}
 					}
 					else {	// not find
 						if(N == 0 && I == 1) {	// immediate address (#)
-							disp = hexToDec(FIRST_OPERAND);
-							format = 3;
+							disp = atoi(FIRST_OPERAND);
+							if(disp >= 0x1000) {
+								format = 4;
+							}
+							else {
+								format = 3;
+							}
 						}
 						else {
 							printf("Error: undefined symbol \'%s\', in line %d\n", FIRST_OPERAND, line);
@@ -622,27 +638,13 @@ int pass2() {
 				// create object code
 				objCode = objectCodeFormat2(OPTAB_CODE[i], regi1, regi2);
 				// concatenate opcode behind text record
-				objLen += 2;
-				char temp[4];
-				sprintf(temp, "%04X", objCode);
-				strncat(textRecord, temp, 4);
 			}
 			else if(format == 3) {
 				// create object code
 				objCode = objectCodeFormat3(OPTAB_CODE[i], N, I, X, B, P, E, disp);
-				// concatenate opcode behind text record
-				objLen += 3;
-				char temp[6];
-				sprintf(temp, "%06X", objCode);
-				strncat(textRecord, temp, 6);
 			}
 			else {
 				objCode = objectCodeFormat4(OPTAB_CODE[i], N, I, X, B, P, E, disp);
-				// concatenate opcode behind text record
-				objLen += 4;
-				char temp[8];
-				sprintf(temp, "%08X", objCode);
-				strncat(textRecord, temp, 8);
 			}
 		}
 		else if(strcmp(OPCODE, "BYTE") == 0) {	// BYTE
@@ -656,11 +658,7 @@ int pass2() {
 					operLen++;
 					objCode = objCode*0x100 + SECOND_OPERAND[i];
 				}
-				objLen += operLen;	// one character is one byte
-				format = operLen;
-				char temp[operLen*2];
-				sprintf(temp, "%06X", objCode);
-				strncat(textRecord, temp, operLen*2);	// concatenate opcode behind text record
+				format = operLen;	// one char one byte
 			}
 			else if(strcmp(FIRST_OPERAND, "X") == 0) {	// hexadecimal
 				char hexOPER[WORD_SIZE] = "";
@@ -672,9 +670,7 @@ int pass2() {
 					operLen++;
 				}
 				objCode = hexToDec(SECOND_OPERAND);
-				objLen += (operLen+1)/2;	// two hexadecimal is one byte
-				format = (operLen+1)/2;
-				strncat(textRecord, SECOND_OPERAND, operLen);	// concatenate opcode behind text record
+				format = (operLen+1)/2;		// two hex one byte
 			}
 			else {
 				printf("Error: invalid byte type '%s', in line %d\n", FIRST_OPERAND, line);
@@ -683,11 +679,7 @@ int pass2() {
 		}
 		else if(strcmp(OPCODE, "WORD") == 0) {	// WORD
 			objCode = atoi(FIRST_OPERAND);
-			objLen += 3;
 			format = 3;
-			char temp[6];
-			sprintf(temp, "%06X", objCode);
-			strncat(textRecord, temp, 6);	// concatenate opcode behind text record
 		}
 		else if(strcmp(OPCODE, "RESW") == 0 || strcmp(OPCODE, "RESB") == 0) {
 			// nothing to do
@@ -697,6 +689,37 @@ int pass2() {
 			return -1;
 		}
 		
+		// write new source file
+		objLen += format;
+		char temp[format*2];
+		if(format == 0) {
+//			printf("%04X\t%s\t%-15s\n", LOCCTR, ONE_LINE, ONE_OPERAND, objCode);
+			fprintf(fnew, "%04X\t%s\t%-15s\n", LOCCTR, ONE_LINE, ONE_OPERAND, objCode);
+		}
+		else if(format == 1) {
+//			printf("%04X\t%s\t%-15s%02X\n", LOCCTR, ONE_LINE, ONE_OPERAND, objCode);
+			fprintf(fnew, "%04X\t%s\t%-15s%02X\n", LOCCTR, ONE_LINE, ONE_OPERAND, objCode);
+			sprintf(temp, "%02X", objCode);
+		}
+		else if(format == 2) {
+//			printf("%04X\t%s\t%-15s%04X\n", LOCCTR, ONE_LINE, ONE_OPERAND, objCode);
+			fprintf(fnew, "%04X\t%s\t%-15s%04X\n", LOCCTR, ONE_LINE, ONE_OPERAND, objCode);
+			sprintf(temp, "%04X", objCode);
+		}
+		else if(format == 3) {
+//			printf("%04X\t%s\t%-15s%06X\n", LOCCTR, ONE_LINE, ONE_OPERAND, objCode);
+			fprintf(fnew, "%04X\t%s\t%-15s%06X\n", LOCCTR, ONE_LINE, ONE_OPERAND, objCode);
+			sprintf(temp, "%06X", objCode);
+		}
+		else if(format == 4) {
+//			printf("%04X\t%s\t%-15s%08X\n", LOCCTR, ONE_LINE, ONE_OPERAND, objCode);
+			fprintf(fnew, "%04X\t%s\t%-15s%08X\n", LOCCTR, ONE_LINE, ONE_OPERAND, objCode);
+			sprintf(temp, "%08X", objCode);	
+		}
+		
+		// concatenate opcode behind text record
+		strncat(textRecord, temp, format*2);
+
 		// count number of object code
 		if(objNum == 0) {
 			// write T and starting address
@@ -704,9 +727,8 @@ int pass2() {
 			fprintf(fobj, "T%06X", LOCCTR);
 		}
 		objNum++;
-		// max object number is 10 in this case
-		// if over 10, then change to next line
-		if(objNum == TEXT_RECD) {
+		// max object number is 10 in this case, if over 10, then change to next line
+		if(objNum == TRECD_SIZE) {
 			// write length of object code and object code
 //			printf("%02X", objLen);
 //			printf("%s\n", textRecord);
@@ -717,30 +739,9 @@ int pass2() {
 			strcpy(textRecord, "");
 		}
 		
-		// write new source file
-		if(format == 0) {
-//			printf("%04X\t%s\t%-15s\n", LOCCTR, ONE_LINE, ONE_OPERAND, objCode);
-			fprintf(fnew, "%04X\t%s\t%-15s\n", LOCCTR, ONE_LINE, ONE_OPERAND, objCode);	
-		}
-		else if(format == 1) {
-//			printf("%04X\t%s\t%-15s%02X\n", LOCCTR, ONE_LINE, ONE_OPERAND, objCode);
-			fprintf(fnew, "%04X\t%s\t%-15s%02X\n", LOCCTR, ONE_LINE, ONE_OPERAND, objCode);	
-		}
-		else if(format == 2) {
-//			printf("%04X\t%s\t%-15s%04X\n", LOCCTR, ONE_LINE, ONE_OPERAND, objCode);
-			fprintf(fnew, "%04X\t%s\t%-15s%04X\n", LOCCTR, ONE_LINE, ONE_OPERAND, objCode);	
-		}
-		else if(format == 3) {
-//			printf("%04X\t%s\t%-15s%06X\n", LOCCTR, ONE_LINE, ONE_OPERAND, objCode);
-			fprintf(fnew, "%04X\t%s\t%-15s%06X\n", LOCCTR, ONE_LINE, ONE_OPERAND, objCode);	
-		}
-		else if(format == 4) {
-//			printf("%04X\t%s\t%-15s%08X\n", LOCCTR, ONE_LINE, ONE_OPERAND, objCode);
-			fprintf(fnew, "%04X\t%s\t%-15s%08X\n", LOCCTR, ONE_LINE, ONE_OPERAND, objCode);	
-		}
-
 		line++;
 	}
+	
 	printf("%s complete!\n", NEWSRC_FILE);
 	printf("%s complete!\n", OBJ_FILE);
     
@@ -774,22 +775,16 @@ int hexToDec(char hex[]) {
 }
 
 unsigned int objectCodeFormat2(int opcode, short regi1, short regi2) {
-	
 //	printf("opcode=%02X, regi1 = %d, regi2 = %d\t", opcode, regi1, regi2);
-	
 	return opcode*0x100 + regi1*0x10 + regi2;
 }
 
 unsigned int objectCodeFormat3(int opcode, short N, short I, short X, short B, short P, short E, int disp) {
-	
 //	printf("opcode=%02X, N=%d, I=%d, X=%d, B=%d, P=%d, E=%d, disp=%03X\t", opcode, N, I, X, B, P, E, disp);
-	
-	return opcode/0X4*0x40000 + N*0x20000 + I*0x10000 + X*0x8000 + B*0x4000 + P*0x2000 + E*0x1000 + (disp&0x00FFF);
+	return opcode*0x10000 + N*0x20000 + I*0x10000 + X*0x8000 + B*0x4000 + P*0x2000 + E*0x1000 + (disp&0x00FFF);
 }
 
 unsigned int objectCodeFormat4(int opcode, short N, short I, short X, short B, short P, short E, int addr) {
-	
 //	printf("opcode=%02X, N=%d, I=%d, X=%d, B=%d, P=%d, E=%d, addr=%05X\t", opcode, N, I, X, B, P, E, addr);
-	
-	return opcode/0X4*0x4000000 + N*0x2000000 + I*0x1000000 + X*0x800000 + B*0x400000 + P*0x200000 + E*0x100000 + addr;
+	return opcode*0x1000000 + N*0x2000000 + I*0x1000000 + X*0x800000 + B*0x400000 + P*0x200000 + E*0x100000 + addr;
 }

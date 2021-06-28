@@ -39,6 +39,8 @@ int objectCode(int opcode, int x, int addr);	// create object code
 
 int main(void) {
 	
+	printf("=====SIC assembler=====\n\n");
+	
 	printf("-----pass 1 START-----\n\n");
 	
 	// start read file for pass1
